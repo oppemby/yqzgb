@@ -55,18 +55,12 @@ class MoyuApp {
       .roche-plugin-moyu-docs {
         display: flex;
         width: 100%;
-        max-height: 100%;
-        min-width: 0;
-        min-height: 0;
+        height: 100%; /* 占满高度 */
         box-sizing: border-box;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         color: var(--color-text, #333);
         background: var(--color-bg, #f5f5f5);
-        overflow-x: hidden;
-        overflow-y: scroll;
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior-y: auto;
-        touch-action: pan-y;
+        overflow: hidden; /* 外层禁止滚动 */
         position: relative;
       }
       .moyu-dark .roche-plugin-moyu-docs {
@@ -130,7 +124,7 @@ class MoyuApp {
         font-weight: 600;
         background: #fff;
         position: relative;
-        flex: 0 0 auto;
+        flex: 0 0 auto; /* 顶栏不被压缩 */
         z-index: 101;
       }
       .moyu-dark .moyu-header { background: #121212; border-bottom-color: rgba(255,255,255,0.05); }
@@ -169,12 +163,12 @@ class MoyuApp {
       .moyu-main {
         flex: 1 1 auto;
         min-width: 0;
-        min-height: 0;
+        height: 100%; /* 占满高度 */
         display: flex;
         flex-direction: column;
         background: #fff;
         position: relative;
-        overflow: visible;
+        overflow: hidden; /* 禁止溢出滚动 */
       }
       .moyu-dark .moyu-main { background: #121212; }
       
@@ -185,7 +179,7 @@ class MoyuApp {
         gap: 12px;
         align-items: center;
         flex-wrap: wrap;
-        flex: 0 0 auto;
+        flex: 0 0 auto; /* 工具栏不被压缩 */
       }
       
       .moyu-btn {
@@ -211,7 +205,7 @@ class MoyuApp {
       .moyu-btn.magic { color: #8b5cf6; border-color: rgba(139, 92, 246, 0.5); }
       .moyu-btn.magic:hover { background: rgba(139, 92, 246, 0.1); }
       .moyu-fab-group {
-        position: fixed;
+        position: absolute;
         right: 22px;
         bottom: 22px;
         display: flex;
@@ -232,10 +226,10 @@ class MoyuApp {
       .moyu-fab-magic { background: #111; }
       
       .moyu-grid-container {
-        flex: 0 0 auto;
-        min-height: 0;
-        overflow: visible;
-        padding: 12px 12px 24px;
+        flex: 1; /* 占据剩余全部高度 */
+        overflow-y: auto; /* 在这里产生内部滚动 */
+        -webkit-overflow-scrolling: touch; /* 移动端平滑滚动 */
+        padding: 12px 12px 80px; /* 底部增加内边距，防止被右下角按钮挡住 */
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
         grid-auto-rows: minmax(128px, max-content);
@@ -346,7 +340,7 @@ class MoyuApp {
         .moyu-sidebar.open + .moyu-sidebar-overlay { display: block; }
         .moyu-toolbar { padding: 12px; gap: 8px; overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
         .moyu-btn { white-space: nowrap; padding: 8px 12px; }
-        .moyu-grid-container { padding: 8px 8px 24px; gap: 1px; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); }
+        .moyu-grid-container { padding: 8px 8px 80px; gap: 1px; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); }
         .moyu-fab-group { right: 16px; bottom: 18px; }
         .moyu-fab { width: 54px; height: 54px; }
       }
@@ -1245,4 +1239,3 @@ window.RochePlugin.register({
     }
   ]
 });
-
