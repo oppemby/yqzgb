@@ -40,10 +40,15 @@ class MoyuApp {
     }
     this.activeSheetId = this.sheets[0].id;
     await this.loadSheetData();
+    this.resizeHandler = () => this.layoutMasonryGrid();
+    window.addEventListener('resize', this.resizeHandler);
     this.render();
   }
 
   destroy() {
+    if (this.resizeHandler) {
+      window.removeEventListener('resize', this.resizeHandler);
+    }
     if (this.styleEl && this.styleEl.parentNode) {
       this.styleEl.parentNode.removeChild(this.styleEl);
     }
@@ -236,9 +241,11 @@ class MoyuApp {
         overscroll-behavior-y: auto;
         touch-action: pan-y;
         padding: 12px 12px 96px;
-        display: block;
-        column-width: 160px;
-        column-gap: 1px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        grid-auto-rows: 4px;
+        align-items: start;
+        gap: 1px;
         background: transparent;
       }
       
@@ -255,10 +262,7 @@ class MoyuApp {
         position: relative;
         width: 100%;
         box-sizing: border-box;
-        break-inside: avoid;
-        page-break-inside: avoid;
-        -webkit-column-break-inside: avoid;
-        margin-bottom: 1px;
+        cursor: pointer;
       }
       .moyu-card:hover { transform: none; box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.35); }
       .moyu-card-header { display: flex; justify-content: space-between; align-items: flex-start; }
@@ -284,6 +288,7 @@ class MoyuApp {
         width: 28px;
         height: 28px;
         opacity: 0;
+        pointer-events: none;
         transition: opacity 0.2s, background 0.2s, transform 0.2s;
         padding: 0;
         border: none;
@@ -298,11 +303,8 @@ class MoyuApp {
         -webkit-backdrop-filter: blur(8px);
       }
       .moyu-card-delete svg { width: 16px; height: 16px; fill: currentColor; }
-      .moyu-card:hover .moyu-card-delete { opacity: 1; }
+      .moyu-card.show-delete .moyu-card-delete { opacity: 1; pointer-events: auto; }
       .moyu-card-delete:hover { background: rgba(255,255,255,0.92); transform: scale(1.04); }
-      @media (hover: none) {
-        .moyu-card-delete { opacity: 0.82; }
-      }
 
       .moyu-stream-indicator { display: inline-block; width: 8px; height: 16px; background: #3b82f6; animation: blink 1s infinite; vertical-align: middle; margin-left: 4px; }
       @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
@@ -377,7 +379,7 @@ class MoyuApp {
         .moyu-sidebar.open + .moyu-sidebar-overlay { display: block; }
         .moyu-toolbar { padding: 12px; gap: 8px; overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
         .moyu-btn { white-space: nowrap; padding: 8px 12px; }
-        .moyu-grid-container { padding: 8px 8px 96px; column-width: 132px; column-gap: 1px; }
+        .moyu-grid-container { padding: 8px 8px 96px; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); }
         .moyu-fab-group { right: 16px; bottom: 18px; }
         .moyu-fab { width: 54px; height: 54px; }
       }
@@ -778,6 +780,7 @@ class MoyuApp {
     this.currentData.forEach(row => {
       const card = document.createElement('div');
       card.className = 'moyu-card';
+      card.dataset.id = row.id;
       // Ensure color is assigned
       if (!row.color) {
         row.color = this.getRandomColor();
@@ -799,23 +802,52 @@ class MoyuApp {
         <div class="moyu-card-content">${this.parseMarkdown(row.content)}${row.isStreaming ? '<span class="moyu-stream-indicator"></span>' : ''}</div>
         ${row.isStreaming ? '' : `
           <div class="moyu-card-footer">
-            <button class="moyu-card-delete" title="删除" onclick="window.moyuDeleteCard('${row.id}')">${this.icons.trash}</button>
+            <button class="moyu-card-delete" title="删除" data-delete-id="${this.escapeHtml(row.id)}">${this.icons.trash}</button>
           </div>
         `}
       `;
+      if (!row.isStreaming) {
+        card.addEventListener('click', (event) => {
+          const target = event.target instanceof Element ? event.target : event.target.parentElement;
+          if (target?.closest('.moyu-card-delete')) return;
+          const wasOpen = card.classList.contains('show-delete');
+          container.querySelectorAll('.moyu-card.show-delete').forEach(el => el.classList.remove('show-delete'));
+          if (!wasOpen) card.classList.add('show-delete');
+        });
+      }
       container.appendChild(card);
     });
 
-    window.moyuDeleteCard = async (id) => {
-      if (await this.roche.ui.confirm({ title: "删除记录", message: "确定撕掉这张便利贴吗？" })) {
-        this.currentData = this.currentData.filter(d => d.id !== id);
-        await this.saveSheetData();
-        this.renderGrid();
-      }
-    };
-    
-    // auto scroll to bottom for the grid container
-    container.scrollTop = container.scrollHeight;
+    container.querySelectorAll('.moyu-card-delete').forEach(button => {
+      button.addEventListener('click', async (event) => {
+        event.stopPropagation();
+        const id = button.dataset.deleteId;
+        if (!id) return;
+        if (await this.roche.ui.confirm({ title: "删除记录", message: "确定撕掉这张便利贴吗？" })) {
+          this.currentData = this.currentData.filter(d => d.id !== id);
+          await this.saveSheetData();
+          this.renderGrid();
+        }
+      });
+    });
+
+    this.layoutMasonryGrid(container);
+    requestAnimationFrame(() => {
+      this.layoutMasonryGrid(container);
+      container.scrollTop = container.scrollHeight;
+    });
+  }
+
+  layoutMasonryGrid(container = this.container.querySelector('#moyu-grid-container')) {
+    if (!container) return;
+    const rowHeight = 4;
+    const gap = 1;
+    Array.from(container.querySelectorAll('.moyu-card')).forEach(card => {
+      card.style.gridRowEnd = '';
+      const height = card.getBoundingClientRect().height;
+      const span = Math.max(1, Math.ceil((height + gap) / (rowHeight + gap)));
+      card.style.gridRowEnd = `span ${span}`;
+    });
   }
 
   bindWorldbookTreeCheckboxes(modal) {
