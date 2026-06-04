@@ -52,7 +52,7 @@ class MoyuApp {
   injectStyles() {
     this.styleEl = document.createElement('style');
     this.styleEl.textContent = `
-      /* --- 根节点释放 --- */
+      /* 去除外层无效的 padding 干扰，交由内部元素自己控制距离 */
       .roche-plugin-moyu-docs {
         display: block; 
         width: 100%;
@@ -62,7 +62,6 @@ class MoyuApp {
         color: var(--color-text, #333);
         background: var(--color-bg, #f5f5f5);
         position: relative;
-        /* 彻底移除这里的人工 padding 偏移，完全交给内部 sticky 元素自动推开 */
       }
       .moyu-dark .roche-plugin-moyu-docs {
         color: #eee;
@@ -70,7 +69,7 @@ class MoyuApp {
       }
       
       @media (min-width: 769px) {
-        .roche-plugin-moyu-docs { display: flex; align-items: flex-start; }
+        .roche-plugin-moyu-docs { display: flex; align-items: flex-start; padding-left: 260px; }
       }
       
       /* --- 主内容区 --- */
@@ -84,10 +83,14 @@ class MoyuApp {
         .moyu-main { flex: 1; }
       }
 
-      /* --- 悬浮顶栏（关键核心） --- */
+      /* =======================================
+         顶栏区域 (代码原封不动，遵循指令绝对不改)
+         ======================================= */
       .moyu-top-bar {
-        position: sticky; /* 粘性定位：静止时占位精确推开下面的帖子，滑动时吸顶 */
+        position: fixed; 
         top: 0;
+        left: 0;
+        right: 0;
         z-index: 101; 
         background: rgba(255, 255, 255, 0.95); 
         backdrop-filter: blur(10px);
@@ -95,8 +98,6 @@ class MoyuApp {
         display: flex;
         flex-direction: column;
         box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-        /* 将安全区加在整个吸顶模块的顶部，背景色会完美填满刘海区域 */
-        padding-top: env(safe-area-inset-top, 0px);
       }
       .moyu-dark .moyu-top-bar {
         background: rgba(30, 30, 30, 0.95);
@@ -107,8 +108,7 @@ class MoyuApp {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        /* 内部恢复正常 padding */
-        padding: 10px 18px;
+        padding: calc(env(safe-area-inset-top, 0px) + 10px) 18px 10px 18px;
         min-height: 64px;
         box-sizing: border-box;
         border-bottom: 1px solid rgba(128, 128, 128, 0.1);
@@ -163,13 +163,11 @@ class MoyuApp {
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
         z-index: 1000; 
-        /* 侧边栏的顶部也加入安全区占位 */
-        padding-top: env(safe-area-inset-top, 0px);
       }
       .moyu-dark .moyu-sidebar { background: rgba(30, 30, 30, 0.95); }
       
       .moyu-sidebar-header {
-        padding: 16px; /* 恢复正常 padding */
+        padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px 16px 16px;
         font-size: 18px;
         font-weight: 600;
         border-bottom: 1px solid rgba(128, 128, 128, 0.2);
@@ -201,9 +199,12 @@ class MoyuApp {
       .moyu-fab-primary { background: #111; }
       .moyu-fab-magic { background: #111; }
       
-      /* --- 帖子网格区 --- */
+      /* =======================================
+         帖子网格区（关键修改位置：计算顶部起跑线）
+         ======================================= */
       .moyu-grid-container {
-        /* 由于上方用了 sticky 定位，浏览器会自动计算上面的精确高度，这里无需任何 margin/padding 去躲避顶栏了，严丝合缝！ */
+        /* 直接用 margin-top 把起跑线往下压，计算公式：安全区 + Header(约64) + Toolbar(约60) 加上一点留白 */
+        margin-top: calc(env(safe-area-inset-top, 0px) + 145px);
         padding: 12px 12px 120px 12px; 
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -298,9 +299,8 @@ class MoyuApp {
       }
       
       @media (min-width: 769px) {
-        .roche-plugin-moyu-docs {
-          /* 桌面端无需担心状态栏安全区，直接左侧留出版图 */
-          padding-left: 260px;
+        .moyu-top-bar {
+          left: 260px; /* 顶栏从侧边栏右边开始计算 */
         }
         .moyu-sidebar {
           position: fixed;
@@ -310,6 +310,11 @@ class MoyuApp {
         }
         .moyu-btn-menu { display: none !important; }
         .moyu-toolbar { display: none; }
+        
+        .moyu-grid-container {
+          /* 桌面端隐藏了 toolbar，所以顶栏较矮，margin-top 同步减小 */
+          margin-top: calc(env(safe-area-inset-top, 0px) + 74px);
+        }
       }
     `;
     document.head.appendChild(this.styleEl);
@@ -606,39 +611,36 @@ class MoyuApp {
         </div>
         <div class="moyu-sidebar-overlay" id="moyu-overlay"></div>
         
-        <div class="moyu-main">
-          
-          <div class="moyu-top-bar">
-            <div class="moyu-header">
-              <div class="moyu-header-left">
-                <button class="moyu-header-btn" id="moyu-btn-back" title="Back">${this.icons.back}</button>
-                <div class="moyu-header-copy">
-                  <div class="moyu-header-title">${this.escapeHtml(this.getActiveSheet()?.name || 'MOYU DOCS')}</div>
-                  <div class="moyu-header-subtitle">Gossip Spreadsheet</div>
-                </div>
-              </div>
-              <div class="moyu-header-actions">
-                <button class="moyu-header-action" id="moyu-btn-settings-top" title="上下文配置">${this.icons.settings}</button>
-                <button class="moyu-header-action" id="moyu-btn-export" title="导出">${this.icons.download}</button>
-                <button class="moyu-header-action" id="moyu-btn-delete-sheet" title="删除文档组">${this.icons.trash}</button>
+        <div class="moyu-top-bar">
+          <div class="moyu-header">
+            <div class="moyu-header-left">
+              <button class="moyu-header-btn" id="moyu-btn-back" title="Back">${this.icons.back}</button>
+              <div class="moyu-header-copy">
+                <div class="moyu-header-title">${this.escapeHtml(this.getActiveSheet()?.name || 'MOYU DOCS')}</div>
+                <div class="moyu-header-subtitle">Gossip Spreadsheet</div>
               </div>
             </div>
-            <div class="moyu-toolbar">
-              <button class="moyu-btn moyu-btn-menu" id="moyu-btn-menu" title="文档列表">${this.icons.menu}</button>
-              <button class="moyu-btn" id="moyu-btn-new-sheet-top" title="新建表格">${this.icons.add} 新表格</button>
+            <div class="moyu-header-actions">
+              <button class="moyu-header-action" id="moyu-btn-settings-top" title="上下文配置">${this.icons.settings}</button>
+              <button class="moyu-header-action" id="moyu-btn-export" title="导出">${this.icons.download}</button>
+              <button class="moyu-header-action" id="moyu-btn-delete-sheet" title="删除文档组">${this.icons.trash}</button>
             </div>
           </div>
-
-          <div class="moyu-grid-container" id="moyu-grid-container">
-            <!-- Masonry/Grid items will go here -->
+          <div class="moyu-toolbar">
+            <button class="moyu-btn moyu-btn-menu" id="moyu-btn-menu" title="文档列表">${this.icons.menu}</button>
+            <button class="moyu-btn" id="moyu-btn-new-sheet-top" title="新建表格">${this.icons.add} 新表格</button>
           </div>
-
-          <div class="moyu-fab-group">
-            <button class="moyu-fab moyu-fab-magic" id="moyu-btn-npc" title="召唤吃瓜群众">${this.icons.magic}</button>
-            <button class="moyu-fab moyu-fab-primary" id="moyu-btn-post" title="记录一笔">${this.icons.add}</button>
-          </div>
-
         </div>
+
+        <div class="moyu-grid-container" id="moyu-grid-container">
+          <!-- Masonry/Grid items will go here -->
+        </div>
+
+        <div class="moyu-fab-group">
+          <button class="moyu-fab moyu-fab-magic" id="moyu-btn-npc" title="召唤吃瓜群众">${this.icons.magic}</button>
+          <button class="moyu-fab moyu-fab-primary" id="moyu-btn-post" title="记录一笔">${this.icons.add}</button>
+        </div>
+
       </div>
     `;
 
