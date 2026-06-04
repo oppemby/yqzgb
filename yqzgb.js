@@ -236,11 +236,9 @@ class MoyuApp {
         overscroll-behavior-y: auto;
         touch-action: pan-y;
         padding: 12px 12px 96px;
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-        grid-auto-rows: minmax(128px, max-content);
-        align-items: start;
-        gap: 1px;
+        display: block;
+        column-width: 160px;
+        column-gap: 1px;
         background: transparent;
       }
       
@@ -255,6 +253,12 @@ class MoyuApp {
         transition: transform 0.2s;
         color: #222;
         position: relative;
+        width: 100%;
+        box-sizing: border-box;
+        break-inside: avoid;
+        page-break-inside: avoid;
+        -webkit-column-break-inside: avoid;
+        margin-bottom: 1px;
       }
       .moyu-card:hover { transform: none; box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.35); }
       .moyu-card-header { display: flex; justify-content: space-between; align-items: flex-start; }
@@ -373,7 +377,7 @@ class MoyuApp {
         .moyu-sidebar.open + .moyu-sidebar-overlay { display: block; }
         .moyu-toolbar { padding: 12px; gap: 8px; overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
         .moyu-btn { white-space: nowrap; padding: 8px 12px; }
-        .moyu-grid-container { padding: 8px 8px 96px; gap: 1px; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); }
+        .moyu-grid-container { padding: 8px 8px 96px; column-width: 132px; column-gap: 1px; }
         .moyu-fab-group { right: 16px; bottom: 18px; }
         .moyu-fab { width: 54px; height: 54px; }
       }
