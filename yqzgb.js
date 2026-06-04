@@ -55,12 +55,11 @@ class MoyuApp {
       .roche-plugin-moyu-docs {
         display: flex;
         width: 100%;
-        height: 100%; /* 占满高度 */
+        min-height: 100vh; /* 释放高度限制，允许被原生页面滚动 */
         box-sizing: border-box;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         color: var(--color-text, #333);
         background: var(--color-bg, #f5f5f5);
-        overflow: hidden; /* 外层禁止滚动 */
         position: relative;
       }
       .moyu-dark .roche-plugin-moyu-docs {
@@ -77,8 +76,12 @@ class MoyuApp {
         flex-direction: column;
         background: rgba(128, 128, 128, 0.05);
         backdrop-filter: blur(10px);
-        transition: left 0.3s;
-        z-index: 100;
+        z-index: 1000;
+        
+        /* 桌面端吸顶，防止页面滚动时跟丢 */
+        position: sticky;
+        top: 0;
+        height: 100vh;
       }
       
       .moyu-sidebar-header {
@@ -112,6 +115,29 @@ class MoyuApp {
         color: #3b82f6;
       }
       
+      .moyu-main {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* 统一的粘性吸顶容器 */
+      .moyu-sticky-top {
+        position: sticky;
+        top: 0;
+        z-index: 101;
+        background: #fff;
+        display: flex;
+        flex-direction: column;
+        /* 滑动时带一点轻微阴影更有原生感 */
+        box-shadow: 0 1px 3px rgba(0,0,0,0.03); 
+      }
+      .moyu-dark .moyu-sticky-top { 
+        background: #121212; 
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      }
+      
       .moyu-header {
         display: flex;
         justify-content: space-between;
@@ -122,12 +148,7 @@ class MoyuApp {
         border-bottom: 1px solid rgba(128, 128, 128, 0.1);
         font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         font-weight: 600;
-        background: #fff;
-        position: relative;
-        flex: 0 0 auto; /* 顶栏不被压缩 */
-        z-index: 101;
       }
-      .moyu-dark .moyu-header { background: #121212; border-bottom-color: rgba(255,255,255,0.05); }
       .moyu-header-left {
         min-width: 0;
         display: flex;
@@ -159,18 +180,6 @@ class MoyuApp {
       .moyu-header-action:hover { background: rgba(128,128,128,0.1); }
       .moyu-header-action:active { transform: scale(0.96); }
       .moyu-header-action svg { width: 20px; height: 20px; fill: currentColor; }
-
-      .moyu-main {
-        flex: 1 1 auto;
-        min-width: 0;
-        height: 100%; /* 占满高度 */
-        display: flex;
-        flex-direction: column;
-        background: #fff;
-        position: relative;
-        overflow: hidden; /* 禁止溢出滚动 */
-      }
-      .moyu-dark .moyu-main { background: #121212; }
       
       .moyu-toolbar {
         padding: 16px;
@@ -179,7 +188,6 @@ class MoyuApp {
         gap: 12px;
         align-items: center;
         flex-wrap: wrap;
-        flex: 0 0 auto; /* 工具栏不被压缩 */
       }
       
       .moyu-btn {
@@ -204,8 +212,9 @@ class MoyuApp {
       .moyu-btn.danger { background: #ef4444; color: #fff; border-color: #ef4444; }
       .moyu-btn.magic { color: #8b5cf6; border-color: rgba(139, 92, 246, 0.5); }
       .moyu-btn.magic:hover { background: rgba(139, 92, 246, 0.1); }
+      
       .moyu-fab-group {
-        position: absolute;
+        position: fixed;
         right: 22px;
         bottom: 22px;
         display: flex;
@@ -226,10 +235,8 @@ class MoyuApp {
       .moyu-fab-magic { background: #111; }
       
       .moyu-grid-container {
-        flex: 1; /* 占据剩余全部高度 */
-        overflow-y: auto; /* 在这里产生内部滚动 */
-        -webkit-overflow-scrolling: touch; /* 移动端平滑滚动 */
-        padding: 12px 12px 80px; /* 底部增加内边距，防止被右下角按钮挡住 */
+        /* 取消自身的 overflow 限制，改用底部留白防挡住按钮 */
+        padding: 12px 12px 120px;
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
         grid-auto-rows: minmax(128px, max-content);
@@ -256,7 +263,6 @@ class MoyuApp {
       .moyu-card-time { font-size: 10px; opacity: 0.55; }
       .moyu-card-content { font-size: 12px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
       
-      /* Markdown basic styles inside cards */
       .moyu-card-content strong { font-weight: bold; color: #000; }
       .moyu-card-content em { font-style: italic; opacity: 0.8; }
       .moyu-card-content a { color: #2563eb; text-decoration: underline; }
@@ -272,7 +278,7 @@ class MoyuApp {
 
       /* Modals */
       .moyu-modal-overlay {
-        position: absolute;
+        position: fixed; /* 改为 fixed 以便无论滚多深都能全屏覆盖 */
         top: 0; left: 0; right: 0; bottom: 0;
         background: rgba(0, 0, 0, 0.5);
         display: flex;
@@ -324,23 +330,34 @@ class MoyuApp {
       .moyu-wb-count { margin-left: auto; font-size: 11px; color: #9ca3af; }
       
       /* Mobile tweaks */
-      .moyu-sidebar-overlay { display: none; position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.4); z-index: 99; }
+      .moyu-sidebar-overlay { 
+        display: none; 
+        position: fixed; /* 遮罩层固定 */
+        top:0; left:0; right:0; bottom:0; 
+        background: rgba(0,0,0,0.4); 
+        z-index: 999; 
+      }
       
       @media (max-width: 768px) {
         .moyu-sidebar {
-          position: absolute;
-          left: -280px;
-          bottom: 0;
+          position: fixed; /* 固定视口高度，解决圈出的底部白边 */
           top: 0;
+          bottom: 0;
+          left: -280px;
+          height: auto;
           background: #fff;
           box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+          transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .moyu-dark .moyu-sidebar { background: #1e1e1e; }
         .moyu-sidebar.open { left: 0; }
         .moyu-sidebar.open + .moyu-sidebar-overlay { display: block; }
-        .moyu-toolbar { padding: 12px; gap: 8px; overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
+        
+        .moyu-toolbar { 
+          padding: 10px 12px; gap: 8px; overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; 
+        }
         .moyu-btn { white-space: nowrap; padding: 8px 12px; }
-        .moyu-grid-container { padding: 8px 8px 80px; gap: 1px; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); }
+        .moyu-grid-container { padding: 8px 8px 100px; gap: 1px; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); }
         .moyu-fab-group { right: 16px; bottom: 18px; }
         .moyu-fab { width: 54px; height: 54px; }
       }
@@ -480,15 +497,11 @@ class MoyuApp {
       .replace(/'/g, "&#039;");
   }
 
-  // Mini Markdown parser for bold, italic, links
   parseMarkdown(str) {
     if (!str) return '';
     let html = this.escapeHtml(str);
-    // Bold
     html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-    // Italic
     html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-    // Links (simple format) [text](url)
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
     return html;
   }
@@ -539,7 +552,6 @@ class MoyuApp {
         parsedText += this.extractContentFromValue(JSON.parse(piece));
         continue;
       } catch (e) {
-        // Keep going; partial stream fragments should not be rendered as raw JSON.
       }
 
       if (!looksJson && !piece.startsWith('event:')) {
@@ -638,51 +650,55 @@ class MoyuApp {
   render() {
     this.container.innerHTML = `
       <div class="roche-plugin-moyu-docs">
-      <div class="moyu-sidebar" id="moyu-sidebar">
-        <div class="moyu-sidebar-header">
-          <span>摸鱼文档 🐟</span>
-          <button class="moyu-btn" id="moyu-btn-new-sheet" style="padding: 4px;" title="新建文档">${this.icons.add}</button>
+        <div class="moyu-sidebar" id="moyu-sidebar">
+          <div class="moyu-sidebar-header">
+            <span>摸鱼文档 🐟</span>
+            <button class="moyu-btn" id="moyu-btn-new-sheet" style="padding: 4px;" title="新建文档">${this.icons.add}</button>
+          </div>
+          <div class="moyu-sheet-list" id="moyu-sheet-list"></div>
         </div>
-        <div class="moyu-sheet-list" id="moyu-sheet-list"></div>
-      </div>
-      <div class="moyu-sidebar-overlay" id="moyu-overlay"></div>
-      <div class="moyu-main">
-        <div class="moyu-header">
-          <div class="moyu-header-left">
-            <button class="moyu-header-btn" id="moyu-btn-back" title="Back">${this.icons.back}</button>
-            <div class="moyu-header-copy">
-              <div class="moyu-header-title">${this.escapeHtml(this.getActiveSheet()?.name || 'MOYU DOCS')}</div>
-              <div class="moyu-header-subtitle">Gossip Spreadsheet</div>
+        <div class="moyu-sidebar-overlay" id="moyu-overlay"></div>
+        <div class="moyu-main">
+          
+          <div class="moyu-sticky-top">
+            <div class="moyu-header">
+              <div class="moyu-header-left">
+                <button class="moyu-header-btn" id="moyu-btn-back" title="Back">${this.icons.back}</button>
+                <div class="moyu-header-copy">
+                  <div class="moyu-header-title">${this.escapeHtml(this.getActiveSheet()?.name || 'MOYU DOCS')}</div>
+                  <div class="moyu-header-subtitle">Gossip Spreadsheet</div>
+                </div>
+              </div>
+              <div class="moyu-header-actions">
+                <button class="moyu-header-action" id="moyu-btn-settings-top" title="上下文配置">${this.icons.settings}</button>
+                <button class="moyu-header-action" id="moyu-btn-export" title="导出">${this.icons.download}</button>
+                <button class="moyu-header-action" id="moyu-btn-delete-sheet" title="删除文档组">${this.icons.trash}</button>
+              </div>
+            </div>
+            <div class="moyu-toolbar">
+              <button class="moyu-btn moyu-btn-menu" id="moyu-btn-menu" title="文档列表">${this.icons.menu}</button>
+              <button class="moyu-btn" id="moyu-btn-new-sheet-top" title="新建表格">${this.icons.add} 新表格</button>
             </div>
           </div>
-          <div class="moyu-header-actions">
-            <button class="moyu-header-action" id="moyu-btn-settings-top" title="上下文配置" aria-label="上下文配置">${this.icons.settings}</button>
-            <button class="moyu-header-action" id="moyu-btn-export" title="导出" aria-label="导出">${this.icons.download}</button>
-            <button class="moyu-header-action" id="moyu-btn-delete-sheet" title="删除文档组" aria-label="删除文档组">${this.icons.trash}</button>
+
+          <div class="moyu-grid-container" id="moyu-grid-container">
+            <!-- Masonry/Grid items will go here -->
           </div>
+
+          <div class="moyu-fab-group">
+            <button class="moyu-fab moyu-fab-magic" id="moyu-btn-npc" title="召唤吃瓜群众">${this.icons.magic}</button>
+            <button class="moyu-fab moyu-fab-primary" id="moyu-btn-post" title="记录一笔">${this.icons.add}</button>
+          </div>
+
         </div>
-        <div class="moyu-toolbar">
-          <button class="moyu-btn moyu-btn-menu" id="moyu-btn-menu" title="文档列表" aria-label="文档列表">${this.icons.menu}</button>
-          <button class="moyu-btn" id="moyu-btn-new-sheet-top" title="新建表格" aria-label="新建表格">${this.icons.add} 新表格</button>
-        </div>
-        <div class="moyu-grid-container" id="moyu-grid-container">
-          <!-- Masonry/Grid items will go here -->
-        </div>
-        <div class="moyu-fab-group">
-          <button class="moyu-fab moyu-fab-magic" id="moyu-btn-npc" title="召唤吃瓜群众" aria-label="召唤吃瓜群众">${this.icons.magic}</button>
-          <button class="moyu-fab moyu-fab-primary" id="moyu-btn-post" title="记录一笔" aria-label="记录一笔">${this.icons.add}</button>
-        </div>
-      </div>
       </div>
     `;
 
-    // Top header back button (tries to close plugin)
     this.container.querySelector('#moyu-btn-back').onclick = () => {
        this.roche.ui?.closeApp?.();
     };
     this.container.querySelector('#moyu-btn-settings-top').onclick = () => this.showSettingsModal();
 
-    // Sidebar Toggle
     const sidebar = this.container.querySelector('#moyu-sidebar');
     const overlay = this.container.querySelector('#moyu-overlay');
     this.container.querySelector('#moyu-btn-menu').onclick = () => {
@@ -694,7 +710,6 @@ class MoyuApp {
       sidebar.classList.remove('open');
     };
 
-    // Bind Sidebar List
     const listEl = this.container.querySelector('#moyu-sheet-list');
     this.sheets.forEach(sheet => {
       const el = document.createElement('div');
@@ -719,7 +734,6 @@ class MoyuApp {
 
     this.renderGrid();
 
-    // Bind Toolbar Actions
     this.container.querySelector('#moyu-btn-new-sheet').onclick = () => this.showNewSheetModal();
     this.container.querySelector('#moyu-btn-new-sheet-top').onclick = () => this.showNewSheetModal();
     this.container.querySelector('#moyu-btn-post').onclick = () => this.showPostModal();
@@ -741,7 +755,6 @@ class MoyuApp {
     this.currentData.forEach(row => {
       const card = document.createElement('div');
       card.className = 'moyu-card';
-      // Ensure color is assigned
       if (!row.color) {
         row.color = this.getRandomColor();
       }
@@ -777,8 +790,12 @@ class MoyuApp {
       }
     };
     
-    // auto scroll to bottom for the grid container
-    container.scrollTop = container.scrollHeight;
+    // 平滑地让最新的消息滚动到视图内
+    setTimeout(() => {
+      if (container.lastElementChild && typeof container.lastElementChild.scrollIntoView === 'function') {
+        container.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
+    }, 100);
   }
 
   bindWorldbookTreeCheckboxes(modal) {
@@ -835,7 +852,7 @@ class MoyuApp {
     `;
 
     overlay.appendChild(modal);
-    this.container.appendChild(overlay); // Append to container instead of body to be scoped
+    this.container.appendChild(overlay); 
     this.bindWorldbookTreeCheckboxes(modal);
 
     const close = () => {
@@ -1032,12 +1049,10 @@ class MoyuApp {
         });
       }
       
-      // 1. Table Custom Worldbook
       if (sheet.customWorldbook) {
         contextText += `\n【当前文档的特有世界书/背景信息】\n${sheet.customWorldbook}\n`;
       }
       
-      // 2. Mounted Chars
       if (sheet.mountedChars && sheet.mountedChars.length > 0) {
         contextText += "\n【参与的角色信息】\n";
         for (const cid of sheet.mountedChars) {
@@ -1048,7 +1063,6 @@ class MoyuApp {
         }
       }
 
-      // 3. Mounted Memories (Convs)
       if (sheet.mountedConvs && sheet.mountedConvs.length > 0) {
         contextText += "\n【相关的历史事实与记忆】\n";
         for (const cid of sheet.mountedConvs) {
@@ -1157,7 +1171,6 @@ class MoyuApp {
         }
       }
 
-      // Stability fix: Handle empty generation
       if (!fullText || fullText.trim() === "") {
          fullText = "神秘群众：（欲言又止，可能是吃瓜还没实锤，什么都没说出...）";
       }
@@ -1218,12 +1231,12 @@ class MoyuApp {
 window.RochePlugin.register({
   id: "moyu-docs",
   name: "摸鱼文档",
-  version: "1.3.4",
+  version: "1.3.5",
   apps: [
     {
       id: "moyu-docs-app",
       name: "摸鱼文档",
-      icon: "table_chart", // Base roche icon, but our internal UI uses custom SVGs
+      icon: "table_chart",
       async mount(container, roche) {
         container.classList.remove('roche-plugin-moyu-docs');
         this.app = new MoyuApp(container, roche);
