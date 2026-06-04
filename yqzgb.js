@@ -246,7 +246,7 @@ class MoyuApp {
       
       .moyu-card {
         border-radius: 0;
-        padding: 10px;
+        padding: 10px 10px 34px;
         min-height: 128px;
         box-shadow: none;
         display: flex;
@@ -267,11 +267,38 @@ class MoyuApp {
       .moyu-card-content em { font-style: italic; opacity: 0.8; }
       .moyu-card-content a { color: #2563eb; text-decoration: underline; }
       
-      .moyu-card-footer { display: flex; justify-content: flex-end; margin-top: 8px; }
-      .moyu-card-delete { opacity: 0; transition: opacity 0.2s; padding: 4px; border:none; background:transparent; color: #ef4444; cursor: pointer; border-radius: 4px;}
+      .moyu-card-footer {
+        position: absolute;
+        right: 8px;
+        bottom: 8px;
+        z-index: 3;
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 0;
+      }
+      .moyu-card-delete {
+        width: 28px;
+        height: 28px;
+        opacity: 0;
+        transition: opacity 0.2s, background 0.2s, transform 0.2s;
+        padding: 0;
+        border: none;
+        background: rgba(255,255,255,0.72);
+        color: #ef4444;
+        cursor: pointer;
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+      }
       .moyu-card-delete svg { width: 16px; height: 16px; fill: currentColor; }
       .moyu-card:hover .moyu-card-delete { opacity: 1; }
-      .moyu-card-delete:hover { background: rgba(239, 68, 68, 0.1); }
+      .moyu-card-delete:hover { background: rgba(255,255,255,0.92); transform: scale(1.04); }
+      @media (hover: none) {
+        .moyu-card-delete { opacity: 0.82; }
+      }
 
       .moyu-stream-indicator { display: inline-block; width: 8px; height: 16px; background: #3b82f6; animation: blink 1s infinite; vertical-align: middle; margin-left: 4px; }
       @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
