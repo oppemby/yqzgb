@@ -40,37 +40,19 @@ class MoyuApp {
     }
     this.activeSheetId = this.sheets[0].id;
     await this.loadSheetData();
-    
-    // 监听窗口尺寸变化，实时重新计算顶栏高度
-    this.resizeHandler = () => this.adjustTopOffset();
-    window.addEventListener('resize', this.resizeHandler);
-    
     this.render();
   }
 
   destroy() {
-    if (this.resizeHandler) {
-      window.removeEventListener('resize', this.resizeHandler);
-    }
     if (this.styleEl && this.styleEl.parentNode) {
       this.styleEl.parentNode.removeChild(this.styleEl);
-    }
-  }
-
-  // 核心魔法：动态计算顶栏真实高度，给帖子流留出完美安全距离
-  adjustTopOffset() {
-    const topBar = this.container.querySelector('.moyu-top-bar');
-    const grid = this.container.querySelector('#moyu-grid-container');
-    if (topBar && grid) {
-      // 获取顶栏真实物理高度，并加上 16px 的呼吸间距
-      grid.style.paddingTop = `${topBar.offsetHeight + 16}px`;
     }
   }
 
   injectStyles() {
     this.styleEl = document.createElement('style');
     this.styleEl.textContent = `
-      /* 根节点彻底释放，允许原生页面级别滚动（橡皮筋手感） */
+      /* 根节点彻底释放，原汁原味的原生滚动 */
       .roche-plugin-moyu-docs {
         display: block; 
         width: 100%;
@@ -79,22 +61,34 @@ class MoyuApp {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         color: var(--color-text, #333);
         background: var(--color-bg, #f5f5f5);
-        position: relative;
       }
       .moyu-dark .roche-plugin-moyu-docs {
         color: #eee;
         background: #1e1e1e;
       }
       
+      @media (min-width: 769px) {
+        .roche-plugin-moyu-docs { display: flex; align-items: flex-start; }
+      }
+      
+      /* --- 主内容区 --- */
+      .moyu-main {
+        width: 100%;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      @media (min-width: 769px) {
+        .moyu-main { flex: 1; }
+      }
+
       /* =======================================
-         不可触碰的绝美顶栏 (原封不动)
+         顶栏区域：使用 sticky（占据物理空间，往下滚时吸顶）
          ======================================= */
       .moyu-top-bar {
-        position: fixed; 
-        top: 0;
-        left: 0;
-        right: 0;
-        z-index: 101; 
+        position: sticky; /* 神奇指令：粘性定位 */
+        top: 0;           /* 吸在屏幕最顶部 */
+        z-index: 101;     /* 保证盖住底下的帖子 */
         background: rgba(255, 255, 255, 0.95); 
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
@@ -111,6 +105,7 @@ class MoyuApp {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        /* 像侧边栏一样注入安全区，防止和刘海打架 */
         padding: calc(env(safe-area-inset-top, 0px) + 10px) 18px 10px 18px;
         min-height: 64px;
         box-sizing: border-box;
@@ -119,7 +114,9 @@ class MoyuApp {
         font-weight: 600;
       }
       .moyu-header-left { min-width: 0; display: flex; align-items: center; gap: 10px; flex: 1 1 auto; }
-      .moyu-header-btn { width: 40px; height: 40px; border-radius: 999px; background: transparent; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; color: inherit; transition: background 0.2s, transform 0.2s; }
+      .moyu-header-btn {
+        width: 40px; height: 40px; border-radius: 999px; background: transparent; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; color: inherit; transition: background 0.2s, transform 0.2s;
+      }
       .moyu-header-btn:hover { background: rgba(128,128,128,0.1); }
       .moyu-header-btn:active { transform: scale(0.96); }
       .moyu-header-btn svg { width: 24px; height: 24px; fill: currentColor; }
@@ -127,7 +124,9 @@ class MoyuApp {
       .moyu-header-title { font-size: 17px; line-height: 1.15; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 56vw; }
       .moyu-header-subtitle { margin-top: 2px; font-size: 11px; line-height: 1.1; color: #9ca3af; font-weight: 500; }
       .moyu-header-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
-      .moyu-header-action { width: 38px; height: 38px; border-radius: 999px; border: none; background: transparent; color: inherit; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; transition: transform 0.2s, background 0.2s; }
+      .moyu-header-action {
+        width: 38px; height: 38px; border-radius: 999px; border: none; background: transparent; color: inherit; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; transition: transform 0.2s, background 0.2s;
+      }
       .moyu-header-action:hover { background: rgba(128,128,128,0.1); }
       .moyu-header-action:active { transform: scale(0.96); }
       .moyu-header-action svg { width: 20px; height: 20px; fill: currentColor; }
@@ -141,13 +140,57 @@ class MoyuApp {
         flex-wrap: wrap;
       }
       
-      .moyu-btn { padding: 8px 16px; border-radius: 8px; border: 1px solid rgba(128, 128, 128, 0.3); background: transparent; cursor: pointer; font-size: 14px; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; color: inherit; font-weight: 500; }
+      .moyu-btn {
+        padding: 8px 16px; border-radius: 8px; border: 1px solid rgba(128, 128, 128, 0.3); background: transparent; cursor: pointer; font-size: 14px; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; color: inherit; font-weight: 500;
+      }
       .moyu-btn svg { width: 18px; height: 18px; fill: currentColor; }
       .moyu-btn:hover { background: rgba(128, 128, 128, 0.1); }
       .moyu-btn.primary { background: #3b82f6; color: #fff; border-color: #3b82f6; }
       .moyu-btn.primary:hover { background: #2563eb; }
       .moyu-btn.magic { color: #8b5cf6; border-color: rgba(139, 92, 246, 0.5); }
       .moyu-btn.magic:hover { background: rgba(139, 92, 246, 0.1); }
+
+      /* =======================================
+         帖子网格区（天然排在顶栏正下方，0计算，0重叠）
+         ======================================= */
+      .moyu-grid-container {
+        /* 只保留正常的内边距，完全不需要任何 margin/padding-top 来避让顶栏！ */
+        padding: 12px 12px 120px 12px; 
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        grid-auto-rows: max-content; 
+        align-items: start;
+        gap: 1px;
+        background: transparent;
+      }
+      
+      .moyu-card {
+        border-radius: 0;
+        padding: 10px;
+        min-height: 128px;
+        box-shadow: none;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        transition: transform 0.2s;
+        color: #222;
+        position: relative;
+      }
+      .moyu-card:hover { transform: none; box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.35); }
+      .moyu-card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+      .moyu-card-author { font-weight: 700; display: flex; align-items: center; gap: 6px; font-size: 12px; }
+      .moyu-card-time { font-size: 10px; opacity: 0.55; }
+      .moyu-card-content { font-size: 12px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
+      .moyu-card-content strong { font-weight: bold; color: #000; }
+      .moyu-card-content em { font-style: italic; opacity: 0.8; }
+      .moyu-card-content a { color: #2563eb; text-decoration: underline; }
+      .moyu-card-footer { display: flex; justify-content: flex-end; margin-top: 8px; }
+      .moyu-card-delete { opacity: 0; transition: opacity 0.2s; padding: 4px; border:none; background:transparent; color: #ef4444; cursor: pointer; border-radius: 4px;}
+      .moyu-card-delete svg { width: 16px; height: 16px; fill: currentColor; }
+      .moyu-card:hover .moyu-card-delete { opacity: 1; }
+      .moyu-card-delete:hover { background: rgba(239, 68, 68, 0.1); }
+      .moyu-stream-indicator { display: inline-block; width: 8px; height: 16px; background: #3b82f6; animation: blink 1s infinite; vertical-align: middle; margin-left: 4px; }
+      @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
       /* --- 侧边栏 --- */
       .moyu-sidebar {
@@ -193,50 +236,6 @@ class MoyuApp {
       .moyu-fab svg { width: 26px; height: 26px; fill: currentColor; }
       .moyu-fab-primary { background: #111; }
       .moyu-fab-magic { background: #111; }
-      
-      /* =======================================
-         帖子网格区（去除了所有写死的 margin，完全由 JS 计算 padding-top）
-         ======================================= */
-      .moyu-grid-container {
-        /* 起跑线 padding-top 由 adjustTopOffset() 精准注入 */
-        padding: 0px 12px 120px 12px; 
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-        grid-auto-rows: max-content; 
-        align-items: start;
-        gap: 1px;
-        background: transparent;
-        position: relative;
-        z-index: 1; 
-      }
-      
-      .moyu-card {
-        border-radius: 0;
-        padding: 10px;
-        min-height: 128px;
-        box-shadow: none;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        transition: transform 0.2s;
-        color: #222;
-        position: relative;
-      }
-      .moyu-card:hover { transform: none; box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.35); }
-      .moyu-card-header { display: flex; justify-content: space-between; align-items: flex-start; }
-      .moyu-card-author { font-weight: 700; display: flex; align-items: center; gap: 6px; font-size: 12px; }
-      .moyu-card-time { font-size: 10px; opacity: 0.55; }
-      .moyu-card-content { font-size: 12px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
-      .moyu-card-content strong { font-weight: bold; color: #000; }
-      .moyu-card-content em { font-style: italic; opacity: 0.8; }
-      .moyu-card-content a { color: #2563eb; text-decoration: underline; }
-      .moyu-card-footer { display: flex; justify-content: flex-end; margin-top: 8px; }
-      .moyu-card-delete { opacity: 0; transition: opacity 0.2s; padding: 4px; border:none; background:transparent; color: #ef4444; cursor: pointer; border-radius: 4px;}
-      .moyu-card-delete svg { width: 16px; height: 16px; fill: currentColor; }
-      .moyu-card:hover .moyu-card-delete { opacity: 1; }
-      .moyu-card-delete:hover { background: rgba(239, 68, 68, 0.1); }
-      .moyu-stream-indicator { display: inline-block; width: 8px; height: 16px; background: #3b82f6; animation: blink 1s infinite; vertical-align: middle; margin-left: 4px; }
-      @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
       /* --- 弹窗相关 --- */
       .moyu-modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; z-index: 10000; backdrop-filter: blur(4px); }
@@ -284,15 +283,9 @@ class MoyuApp {
       }
       
       @media (min-width: 769px) {
-        .moyu-top-bar { left: 260px; }
-        .moyu-sidebar { position: fixed; top: 0; bottom: 0; left: 0; }
+        .moyu-sidebar { position: sticky; top: 0; height: 100vh; }
         .moyu-btn-menu { display: none !important; }
         .moyu-toolbar { display: none; }
-        
-        .moyu-grid-container {
-          /* 桌面端需加上侧边栏的 260px 宽度 */
-          padding-left: calc(260px + 12px);
-        }
       }
     `;
     document.head.appendChild(this.styleEl);
@@ -589,29 +582,33 @@ class MoyuApp {
         </div>
         <div class="moyu-sidebar-overlay" id="moyu-overlay"></div>
         
-        <div class="moyu-top-bar">
-          <div class="moyu-header">
-            <div class="moyu-header-left">
-              <button class="moyu-header-btn" id="moyu-btn-back" title="Back">${this.icons.back}</button>
-              <div class="moyu-header-copy">
-                <div class="moyu-header-title">${this.escapeHtml(this.getActiveSheet()?.name || 'MOYU DOCS')}</div>
-                <div class="moyu-header-subtitle">Gossip Spreadsheet</div>
+        <div class="moyu-main">
+          
+          <div class="moyu-top-bar">
+            <div class="moyu-header">
+              <div class="moyu-header-left">
+                <button class="moyu-header-btn" id="moyu-btn-back" title="Back">${this.icons.back}</button>
+                <div class="moyu-header-copy">
+                  <div class="moyu-header-title">${this.escapeHtml(this.getActiveSheet()?.name || 'MOYU DOCS')}</div>
+                  <div class="moyu-header-subtitle">Gossip Spreadsheet</div>
+                </div>
+              </div>
+              <div class="moyu-header-actions">
+                <button class="moyu-header-action" id="moyu-btn-settings-top" title="上下文配置">${this.icons.settings}</button>
+                <button class="moyu-header-action" id="moyu-btn-export" title="导出">${this.icons.download}</button>
+                <button class="moyu-header-action" id="moyu-btn-delete-sheet" title="删除文档组">${this.icons.trash}</button>
               </div>
             </div>
-            <div class="moyu-header-actions">
-              <button class="moyu-header-action" id="moyu-btn-settings-top" title="上下文配置">${this.icons.settings}</button>
-              <button class="moyu-header-action" id="moyu-btn-export" title="导出">${this.icons.download}</button>
-              <button class="moyu-header-action" id="moyu-btn-delete-sheet" title="删除文档组">${this.icons.trash}</button>
+            <div class="moyu-toolbar">
+              <button class="moyu-btn moyu-btn-menu" id="moyu-btn-menu" title="文档列表">${this.icons.menu}</button>
+              <button class="moyu-btn" id="moyu-btn-new-sheet-top" title="新建表格">${this.icons.add} 新表格</button>
             </div>
           </div>
-          <div class="moyu-toolbar">
-            <button class="moyu-btn moyu-btn-menu" id="moyu-btn-menu" title="文档列表">${this.icons.menu}</button>
-            <button class="moyu-btn" id="moyu-btn-new-sheet-top" title="新建表格">${this.icons.add} 新表格</button>
-          </div>
-        </div>
 
-        <div class="moyu-grid-container" id="moyu-grid-container">
-          <!-- Masonry/Grid items will go here -->
+          <div class="moyu-grid-container" id="moyu-grid-container">
+            <!-- Masonry/Grid items will go here -->
+          </div>
+
         </div>
 
         <div class="moyu-fab-group">
@@ -661,9 +658,6 @@ class MoyuApp {
     });
 
     this.renderGrid();
-
-    // 每次重新渲染完页面结构，延时一小会儿确保 DOM 画完，再算一次高度
-    setTimeout(() => this.adjustTopOffset(), 50);
 
     this.container.querySelector('#moyu-btn-new-sheet').onclick = () => this.showNewSheetModal();
     this.container.querySelector('#moyu-btn-new-sheet-top').onclick = () => this.showNewSheetModal();
@@ -1161,7 +1155,7 @@ class MoyuApp {
 window.RochePlugin.register({
   id: "moyu-docs",
   name: "摸鱼文档",
-  version: "1.4.0",
+  version: "1.4.1",
   apps: [
     {
       id: "moyu-docs-app",
