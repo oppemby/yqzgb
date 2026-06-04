@@ -52,28 +52,27 @@ class MoyuApp {
   injectStyles() {
     this.styleEl = document.createElement('style');
     this.styleEl.textContent = `
-      /* 核心修改：彻底释放高度，回归最原始的文档流 */
+      /* 释放高度限制，允许被原生页面滚动 */
       .roche-plugin-moyu-docs {
-        display: block; /* 移动端完全放弃 flex，让内容自然往下铺 */
+        display: block; 
         width: 100%;
+        min-height: 100vh; 
         box-sizing: border-box;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         color: var(--color-text, #333);
         background: var(--color-bg, #f5f5f5);
+        position: relative;
       }
       .moyu-dark .roche-plugin-moyu-docs {
         color: #eee;
         background: #1e1e1e;
       }
       
-      /* PC端为了侧边栏并排，使用 flex，但关键是 align-items: flex-start，绝不拉伸高度 */
       @media (min-width: 769px) {
-        .roche-plugin-moyu-docs {
-          display: flex;
-          align-items: flex-start;
-        }
+        .roche-plugin-moyu-docs { display: flex; align-items: flex-start; }
       }
       
+      /* --- 侧边栏 --- */
       .moyu-sidebar {
         width: 260px;
         flex: 0 0 260px;
@@ -81,22 +80,21 @@ class MoyuApp {
         border-right: 1px solid rgba(128, 128, 128, 0.2);
         display: flex;
         flex-direction: column;
-        background: rgba(128, 128, 128, 0.05);
+        background: rgba(255, 255, 255, 0.95); /* 加强背景不透明度 */
         backdrop-filter: blur(10px);
-        z-index: 1000;
+        z-index: 1000; /* 保证在最顶层 */
+      }
+      .moyu-dark .moyu-sidebar {
+        background: rgba(30, 30, 30, 0.95);
       }
       
-      /* PC端侧边栏吸顶 */
       @media (min-width: 769px) {
-        .moyu-sidebar {
-          position: sticky;
-          top: 0;
-          height: 100vh;
-        }
+        .moyu-sidebar { position: sticky; top: 0; height: 100vh; }
       }
       
       .moyu-sidebar-header {
-        padding: 16px;
+        /* 加入安全区 Padding，防止和系统状态栏/原生标题打架 */
+        padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px 16px 16px;
         font-size: 18px;
         font-weight: 600;
         border-bottom: 1px solid rgba(128, 128, 128, 0.2);
@@ -126,21 +124,25 @@ class MoyuApp {
         color: #3b82f6;
       }
       
+      /* --- 主内容区 --- */
       .moyu-main {
         width: 100%;
         min-width: 0;
-        /* 绝不限制高度 */
+        display: flex;
+        flex-direction: column;
       }
       @media (min-width: 769px) {
         .moyu-main { flex: 1; }
       }
 
-      /* 吸顶的头部，依赖原生 sticky，丝滑不挡滚动 */
+      /* 统一的粘性吸顶容器 - 阻挡帖子飞上去的关键 */
       .moyu-sticky-top {
         position: sticky;
         top: 0;
-        z-index: 101;
-        background: #fff;
+        z-index: 101; /* 必须高于帖子的层级 */
+        background: #fff; /* 必须是纯色实心，才能盖住底部划上来的帖子 */
+        display: flex;
+        flex-direction: column;
         box-shadow: 0 1px 3px rgba(0,0,0,0.03); 
       }
       .moyu-dark .moyu-sticky-top { 
@@ -152,7 +154,8 @@ class MoyuApp {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 10px 18px;
+        /* 同样加入顶栏安全区 Padding，给刘海留足空间 */
+        padding: calc(env(safe-area-inset-top, 0px) + 10px) 18px 10px 18px;
         min-height: 64px;
         box-sizing: border-box;
         border-bottom: 1px solid rgba(128, 128, 128, 0.1);
@@ -214,12 +217,12 @@ class MoyuApp {
       .moyu-fab-primary { background: #111; }
       .moyu-fab-magic { background: #111; }
       
-      /* 网格内容区：高度完全由内部卡片决定 */
+      /* 网格内容区：无需层级，自然排布在顶栏下方即可 */
       .moyu-grid-container {
-        padding: 12px 12px 120px; /* 底部留白防止被浮动按钮遮挡 */
+        padding: 12px 12px 120px; 
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-        grid-auto-rows: max-content; /* 让卡片自然撑开 */
+        grid-auto-rows: max-content; 
         align-items: start;
         gap: 1px;
         background: transparent;
@@ -236,6 +239,7 @@ class MoyuApp {
         transition: transform 0.2s;
         color: #222;
         position: relative;
+        z-index: 1; /* 保证卡片本身基础层级 */
       }
       .moyu-card:hover { transform: none; box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.35); }
       .moyu-card-header { display: flex; justify-content: space-between; align-items: flex-start; }
@@ -264,7 +268,7 @@ class MoyuApp {
         display: flex;
         justify-content: center;
         align-items: center;
-        z-index: 10000;
+        z-index: 10000; /* 最顶层 */
         backdrop-filter: blur(4px);
       }
       .moyu-modal {
@@ -305,11 +309,10 @@ class MoyuApp {
           bottom: 0;
           left: -280px;
           height: auto;
-          background: #fff;
           box-shadow: 2px 0 10px rgba(0,0,0,0.1);
           transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          z-index: 1000;
         }
-        .moyu-dark .moyu-sidebar { background: #1e1e1e; }
         .moyu-sidebar.open { left: 0; }
         .moyu-sidebar.open + .moyu-sidebar-overlay { display: block; }
         
@@ -751,7 +754,6 @@ class MoyuApp {
       }
     };
     
-    // 依赖浏览器原生滚动
     setTimeout(() => {
       if (container.lastElementChild && typeof container.lastElementChild.scrollIntoView === 'function') {
         container.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -1192,7 +1194,7 @@ class MoyuApp {
 window.RochePlugin.register({
   id: "moyu-docs",
   name: "摸鱼文档",
-  version: "1.3.6",
+  version: "1.3.7",
   apps: [
     {
       id: "moyu-docs-app",
