@@ -29,7 +29,7 @@ class MoyuApp {
         id: crypto.randomUUID(),
         name: "默认吃瓜组",
         context: "你是一个高强度冲浪的群聊吃瓜群众。发言要像朋友群里接话、吐槽、拱火，不要像各说各话。",
-        customWorldbook: "", // 表格专属世界书
+        customWorldbook: "", 
         mountedChars: [],
         mountedConvs: [],
         mountedWbs: [],
@@ -52,19 +52,26 @@ class MoyuApp {
   injectStyles() {
     this.styleEl = document.createElement('style');
     this.styleEl.textContent = `
+      /* 核心修改：彻底释放高度，回归最原始的文档流 */
       .roche-plugin-moyu-docs {
-        display: flex;
+        display: block; /* 移动端完全放弃 flex，让内容自然往下铺 */
         width: 100%;
-        min-height: 100vh; /* 释放高度限制，允许被原生页面滚动 */
         box-sizing: border-box;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         color: var(--color-text, #333);
         background: var(--color-bg, #f5f5f5);
-        position: relative;
       }
       .moyu-dark .roche-plugin-moyu-docs {
         color: #eee;
         background: #1e1e1e;
+      }
+      
+      /* PC端为了侧边栏并排，使用 flex，但关键是 align-items: flex-start，绝不拉伸高度 */
+      @media (min-width: 769px) {
+        .roche-plugin-moyu-docs {
+          display: flex;
+          align-items: flex-start;
+        }
       }
       
       .moyu-sidebar {
@@ -77,11 +84,15 @@ class MoyuApp {
         background: rgba(128, 128, 128, 0.05);
         backdrop-filter: blur(10px);
         z-index: 1000;
-        
-        /* 桌面端吸顶，防止页面滚动时跟丢 */
-        position: sticky;
-        top: 0;
-        height: 100vh;
+      }
+      
+      /* PC端侧边栏吸顶 */
+      @media (min-width: 769px) {
+        .moyu-sidebar {
+          position: sticky;
+          top: 0;
+          height: 100vh;
+        }
       }
       
       .moyu-sidebar-header {
@@ -116,21 +127,20 @@ class MoyuApp {
       }
       
       .moyu-main {
-        flex: 1;
+        width: 100%;
         min-width: 0;
-        display: flex;
-        flex-direction: column;
+        /* 绝不限制高度 */
+      }
+      @media (min-width: 769px) {
+        .moyu-main { flex: 1; }
       }
 
-      /* 统一的粘性吸顶容器 */
+      /* 吸顶的头部，依赖原生 sticky，丝滑不挡滚动 */
       .moyu-sticky-top {
         position: sticky;
         top: 0;
         z-index: 101;
         background: #fff;
-        display: flex;
-        flex-direction: column;
-        /* 滑动时带一点轻微阴影更有原生感 */
         box-shadow: 0 1px 3px rgba(0,0,0,0.03); 
       }
       .moyu-dark .moyu-sticky-top { 
@@ -149,19 +159,9 @@ class MoyuApp {
         font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         font-weight: 600;
       }
-      .moyu-header-left {
-        min-width: 0;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        flex: 1 1 auto;
-      }
+      .moyu-header-left { min-width: 0; display: flex; align-items: center; gap: 10px; flex: 1 1 auto; }
       .moyu-header-btn {
-        width: 40px; height: 40px; border-radius: 999px;
-        background: transparent; border: none; cursor: pointer; padding: 0;
-        display: flex; align-items: center; justify-content: center;
-        color: inherit;
-        transition: background 0.2s, transform 0.2s;
+        width: 40px; height: 40px; border-radius: 999px; background: transparent; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; color: inherit; transition: background 0.2s, transform 0.2s;
       }
       .moyu-header-btn:hover { background: rgba(128,128,128,0.1); }
       .moyu-header-btn:active { transform: scale(0.96); }
@@ -169,20 +169,16 @@ class MoyuApp {
       .moyu-header-copy { min-width: 0; display: flex; flex-direction: column; }
       .moyu-header-title { font-size: 17px; line-height: 1.15; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 56vw; }
       .moyu-header-subtitle { margin-top: 2px; font-size: 11px; line-height: 1.1; color: #9ca3af; font-weight: 500; }
-      .moyu-header-spacer { width: 40px; height: 40px; flex: 0 0 auto; }
       .moyu-header-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
       .moyu-header-action {
-        width: 38px; height: 38px; border-radius: 999px;
-        border: none; background: transparent; color: inherit; cursor: pointer; padding: 0;
-        display: flex; align-items: center; justify-content: center;
-        transition: transform 0.2s, background 0.2s;
+        width: 38px; height: 38px; border-radius: 999px; border: none; background: transparent; color: inherit; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; transition: transform 0.2s, background 0.2s;
       }
       .moyu-header-action:hover { background: rgba(128,128,128,0.1); }
       .moyu-header-action:active { transform: scale(0.96); }
       .moyu-header-action svg { width: 20px; height: 20px; fill: currentColor; }
       
       .moyu-toolbar {
-        padding: 16px;
+        padding: 12px 16px;
         border-bottom: 1px solid rgba(128, 128, 128, 0.2);
         display: flex;
         gap: 12px;
@@ -191,25 +187,12 @@ class MoyuApp {
       }
       
       .moyu-btn {
-        padding: 8px 16px;
-        border-radius: 8px;
-        border: 1px solid rgba(128, 128, 128, 0.3);
-        background: transparent;
-        cursor: pointer;
-        font-size: 14px;
-        transition: all 0.2s;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        color: inherit;
-        font-weight: 500;
+        padding: 8px 16px; border-radius: 8px; border: 1px solid rgba(128, 128, 128, 0.3); background: transparent; cursor: pointer; font-size: 14px; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; color: inherit; font-weight: 500;
       }
       .moyu-btn svg { width: 18px; height: 18px; fill: currentColor; }
       .moyu-btn:hover { background: rgba(128, 128, 128, 0.1); }
       .moyu-btn.primary { background: #3b82f6; color: #fff; border-color: #3b82f6; }
       .moyu-btn.primary:hover { background: #2563eb; }
-      .moyu-btn.danger { background: #ef4444; color: #fff; border-color: #ef4444; }
       .moyu-btn.magic { color: #8b5cf6; border-color: rgba(139, 92, 246, 0.5); }
       .moyu-btn.magic:hover { background: rgba(139, 92, 246, 0.1); }
       
@@ -223,10 +206,7 @@ class MoyuApp {
         z-index: 130;
       }
       .moyu-fab {
-        width: 56px; height: 56px; border-radius: 999px; border: none;
-        cursor: pointer; display: flex; align-items: center; justify-content: center;
-        color: #fff; box-shadow: 0 18px 34px rgba(0,0,0,0.22);
-        transition: transform 0.2s, box-shadow 0.2s;
+        width: 56px; height: 56px; border-radius: 999px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #fff; box-shadow: 0 18px 34px rgba(0,0,0,0.22); transition: transform 0.2s, box-shadow 0.2s;
       }
       .moyu-fab:hover { transform: translateY(-2px); box-shadow: 0 22px 40px rgba(0,0,0,0.24); }
       .moyu-fab:active { transform: scale(0.96); }
@@ -234,12 +214,12 @@ class MoyuApp {
       .moyu-fab-primary { background: #111; }
       .moyu-fab-magic { background: #111; }
       
+      /* 网格内容区：高度完全由内部卡片决定 */
       .moyu-grid-container {
-        /* 取消自身的 overflow 限制，改用底部留白防挡住按钮 */
-        padding: 12px 12px 120px;
+        padding: 12px 12px 120px; /* 底部留白防止被浮动按钮遮挡 */
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-        grid-auto-rows: minmax(128px, max-content);
+        grid-auto-rows: max-content; /* 让卡片自然撑开 */
         align-items: start;
         gap: 1px;
         background: transparent;
@@ -278,7 +258,7 @@ class MoyuApp {
 
       /* Modals */
       .moyu-modal-overlay {
-        position: fixed; /* 改为 fixed 以便无论滚多深都能全屏覆盖 */
+        position: fixed; 
         top: 0; left: 0; right: 0; bottom: 0;
         background: rgba(0, 0, 0, 0.5);
         display: flex;
@@ -288,37 +268,18 @@ class MoyuApp {
         backdrop-filter: blur(4px);
       }
       .moyu-modal {
-        background: #fff;
-        border-radius: 16px;
-        width: 600px;
-        max-width: 90vw;
-        max-height: 90vh;
-        display: flex;
-        flex-direction: column;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        background: #fff; border-radius: 16px; width: 600px; max-width: 90vw; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
       }
       .moyu-dark .moyu-modal { background: #1e1e1e; border: 1px solid #333; }
       .moyu-modal-header { padding: 20px 24px; border-bottom: 1px solid rgba(128, 128, 128, 0.2); font-size: 20px; font-weight: bold; display: flex; justify-content: space-between; align-items: center;}
       .moyu-modal-body { padding: 24px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 20px; }
       .moyu-modal-footer { padding: 16px 24px; border-top: 1px solid rgba(128, 128, 128, 0.2); display: flex; justify-content: flex-end; gap: 12px; background: rgba(128,128,128,0.02); border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;}
       
-      .moyu-input, .moyu-textarea {
-        width: 100%;
-        padding: 12px;
-        border-radius: 8px;
-        border: 1px solid rgba(128, 128, 128, 0.3);
-        background: transparent;
-        color: inherit;
-        font-family: inherit;
-        box-sizing: border-box;
-        font-size: 14px;
-        transition: border-color 0.2s;
-      }
+      .moyu-input, .moyu-textarea { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(128, 128, 128, 0.3); background: transparent; color: inherit; font-family: inherit; box-sizing: border-box; font-size: 14px; transition: border-color 0.2s; }
       .moyu-input:focus, .moyu-textarea:focus { border-color: #3b82f6; outline: none; }
       .moyu-textarea { min-height: 120px; resize: vertical; }
       .moyu-label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 15px; }
       .moyu-hint { font-size: 12px; color: gray; margin-top: 4px; line-height: 1.4; }
-      
       .moyu-checkbox-group { max-height: 180px; overflow-y: auto; border: 1px solid rgba(128,128,128,0.2); border-radius: 8px; padding: 12px; background: rgba(128,128,128,0.02); }
       .moyu-checkbox-item { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; cursor: pointer; }
       .moyu-checkbox-item:last-child { margin-bottom: 0; }
@@ -329,10 +290,9 @@ class MoyuApp {
       .moyu-wb-entry { padding-left: 26px; font-size: 13px; opacity: 0.92; }
       .moyu-wb-count { margin-left: auto; font-size: 11px; color: #9ca3af; }
       
-      /* Mobile tweaks */
       .moyu-sidebar-overlay { 
         display: none; 
-        position: fixed; /* 遮罩层固定 */
+        position: fixed; 
         top:0; left:0; right:0; bottom:0; 
         background: rgba(0,0,0,0.4); 
         z-index: 999; 
@@ -340,7 +300,7 @@ class MoyuApp {
       
       @media (max-width: 768px) {
         .moyu-sidebar {
-          position: fixed; /* 固定视口高度，解决圈出的底部白边 */
+          position: fixed;
           top: 0;
           bottom: 0;
           left: -280px;
@@ -658,6 +618,7 @@ class MoyuApp {
           <div class="moyu-sheet-list" id="moyu-sheet-list"></div>
         </div>
         <div class="moyu-sidebar-overlay" id="moyu-overlay"></div>
+        
         <div class="moyu-main">
           
           <div class="moyu-sticky-top">
@@ -790,7 +751,7 @@ class MoyuApp {
       }
     };
     
-    // 平滑地让最新的消息滚动到视图内
+    // 依赖浏览器原生滚动
     setTimeout(() => {
       if (container.lastElementChild && typeof container.lastElementChild.scrollIntoView === 'function') {
         container.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -1231,7 +1192,7 @@ class MoyuApp {
 window.RochePlugin.register({
   id: "moyu-docs",
   name: "摸鱼文档",
-  version: "1.3.5",
+  version: "1.3.6",
   apps: [
     {
       id: "moyu-docs-app",
