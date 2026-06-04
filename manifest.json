@@ -1,7 +1,7 @@
 {
   "id": "moyu-docs",
   "name": "摸鱼文档",
-  "version": "1.3.6",
+  "version": "1.3.7",
   "description": "吃瓜小组专属多维表格，支持多开、角色挂载与 AI 自动产瓜。",
   "author": "111111",
   "entry": "https://raw.githubusercontent.com/oppemby/yqzgb/main/yqzgb.js",
